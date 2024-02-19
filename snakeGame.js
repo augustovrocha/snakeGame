@@ -1,30 +1,60 @@
-const canvas = document.querySelector("canvas")
-
-const ctx = canvas.getContext("2d")
-
-const score = document.querySelector(".score--value")
-
-const finalScore = document.querySelector(".final-score > span")
-
-const menu = document.querySelector(".menu-screen")
-
-const buttonPlay = document.querySelector(".btn-play")
-
-const audio = new Audio("../Snake Game/assets/audio.mp3")
-
-const audioGamerOver = new Audio("../Snake Game/assets/game-over.mp3")
-
-const size = 30
-
-const initialPosition = { x: 300, y: 300 }
+const canvas = document.querySelector("canvas");
+const ctx = canvas.getContext("2d");
+const score = document.querySelector(".score--value");
+const finalScore = document.querySelector(".final-score > span");
+const menu = document.querySelector(".menu-screen");
+const buttonPlay = document.querySelector(".btn-play");
+const audio = new Audio("../projetos/assets/audio.mp3");
+const audioGamerOver = new Audio("../projetos/assets/game-over.mp3");
+const audioClique = new Audio("../projetos/assets/clique.mp3");
+const size = 30;
+// const initialPosition = { x: canvas.width / 2 - size / 2, y: canvas.height / 2 - size / 2 };
+const roundedCanvasWidth = Math.floor(canvas.width / size) * size;
+const roundedCanvasHeight = Math.floor(canvas.height / size) * size;
+const initialPosition = { 
+    x: (roundedCanvasWidth / 2 - size / 2) % size === 0 ? roundedCanvasWidth / 2 - size / 2 : (roundedCanvasWidth / 2) - (roundedCanvasWidth % size) / 2,
+    y: (roundedCanvasHeight / 2 - size / 2) % size === 0 ? roundedCanvasHeight / 2 - size / 2 : (roundedCanvasHeight / 2) - (roundedCanvasHeight % size) / 2
+  };
 
 let snake = [initialPosition]
-
 let audioPlayed = false; // Variável de controle
-
 let wallCollision = false; // Defina a variável wallCollision como global
-
 let selfCollision  = false; // Defina a variável selfCollision  como global
+
+/* document.body.style.overflow = "hidden";
+
+function atualizarEscala() {
+  const alturaJanela = window.innerHeight;
+  let scale = 1.0; 
+
+  if (alturaJanela > 1920) {
+    scale = 1.5;
+  } else if (alturaJanela > 1600) {
+    scale = 1.4;
+  } else if (alturaJanela > 1366) {
+    scale = 1.3;
+  } else if (alturaJanela > 1000) {
+    scale = 1.1;
+  } else if (alturaJanela > 900) {
+    scale = 1.2;
+  } else if (alturaJanela > 800) {
+    scale = 1.0;
+  } else if (alturaJanela > 700) {
+    scale = 0.9;
+  } else if (alturaJanela > 600) {
+    scale = 0.8;
+  } else if (alturaJanela > 550) {
+    scale = 0.7;
+  } else if (alturaJanela < 500) {
+    scale = 0.5;
+  }
+
+  document.body.style.transform = `scale(${scale})`;
+}
+
+window.addEventListener("resize", atualizarEscala);
+
+atualizarEscala(); */
 
 const incrementScore = () => {
   score.innerText = + score.innerText + 10
@@ -34,9 +64,14 @@ const randomNumber = (min, max) => {
   return Math.round(Math.random() * (max - min) + min)
 }
 
-const randomPosition = () => {
+const randomPositionWidth = () => {
   const number = randomNumber(0, canvas.width - size)
   return Math.round(number / 30) * 30
+}
+
+const randomPositionHeight = () => {
+    const number = randomNumber(0, canvas.height - size)
+    return Math.round(number / 30) * 30
 }
 
 const randomColor = () => {
@@ -48,8 +83,8 @@ const randomColor = () => {
 }
 
 const food = {
-  x: randomPosition(),
-  y: randomPosition(),
+  x: randomPositionWidth(),
+  y: randomPositionHeight(),
   color: randomColor()
 }
 
@@ -107,12 +142,12 @@ const drawGrid = () => {
   for (let i = 30; i < canvas.width; i += 30) {
     ctx.beginPath()
     ctx.lineTo(i, 0)
-    ctx.lineTo(i, 600)
+    ctx.lineTo(i, canvas.width)
     ctx.stroke()
 
     ctx.beginPath()
     ctx.lineTo(0, i)
-    ctx.lineTo(600, i)
+    ctx.lineTo(canvas.height, i)
     ctx.stroke()
   }
 }
@@ -125,12 +160,12 @@ const checkEat = () => {
     snake.push(head)
     audio.play()
 
-    let x = randomPosition()
-    let y = randomPosition()
+    let x = randomPositionWidth()
+    let y = randomPositionHeight()
 
     while (snake.find((position) => position.x == x && position.y == y)) {
-      x = randomPosition()
-      y = randomPosition()
+      x = randomPositionWidth()
+      y = randomPositionHeight()
     }
 
     food.x = x
@@ -141,11 +176,12 @@ const checkEat = () => {
 
 const checkCollision = () => {
   const head = snake[snake.length - 1]
-  const canvasLimit = canvas.width - size
+  const canvasLimitWidth = canvas.width - size
+  const canvasLimitHeight = canvas.height - size
   const nextIndex = snake.length - 2
 
   wallCollision =
-    head.x < 0 || head.x > canvasLimit || head.y < 0 || head.y > canvasLimit
+    head.x < 0 || head.x > canvasLimitWidth || head.y < 0 || head.y > canvasLimitHeight
 
   selfCollision = snake.find((position, index) => {
     return index < nextIndex && position.x == head.x && position.y == head.y
@@ -171,7 +207,7 @@ const gameOver = () => {
 const gameLoop = () => {
   clearInterval(loopId)
 
-  ctx.clearRect(0, 0, 600, 600)
+  ctx.clearRect(0, 0, canvas.width, canvas.height)
   drawGrid()
   drawFood()
   moveSnake()
@@ -181,7 +217,7 @@ const gameLoop = () => {
 
   loopId = setTimeout(() => {
     gameLoop()
-  }, 300)
+  }, 180)
 }
 
 gameLoop()
@@ -190,24 +226,28 @@ document.addEventListener("keydown", ({ key }) => {
   if (key == "ArrowRight" && direction !== "left") {
     if (!(wallCollision || selfCollision)) {
       direction = "right"
+      audioClique.play()
     }
   }
 
   if (key == "ArrowLeft" && direction !== "right") {
     if (!(wallCollision || selfCollision)) {
       direction = "left"
+      audioClique.play()
     }
   }
 
   if (key == "ArrowDown" && direction !== "up") {
     if (!(wallCollision || selfCollision)) {
       direction = "down"
+      audioClique.play()
     }
   }
 
   if (key == "ArrowUp" && direction !== "down") {
     if (!(wallCollision || selfCollision)) {
       direction = "up"
+      audioClique.play()
     }
   }
 
